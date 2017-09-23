@@ -30,9 +30,10 @@ fig = plt.figure()
 ax1 = fig.add_subplot(1,1,1)
 lastPrice = None
 
-dropLimit = 0.01
 data = []
-dropPrices = []
+mpa = []
+max_points = 80
+mpa_points = 10
 
 def update(i):
     # fetch the current ticker
@@ -49,40 +50,37 @@ def update(i):
     lowestAskRound = float(round(Decimal(lowestAsk), 2))
     lowestAsks.append(lowestAskRound)
     global lastPrice
-    if lastPrice is None:
-        lastPrice = lowestAskRound
-    if lastPrice != lowestAskRound:
-        print(lowestAskRound)
-
-    global dropLimit
-
-    dropPrice = (lowestAskRound-lowestAskRound*dropLimit)
-
-    
-    try:
-        if dropPrice > dropPrices[-1]:
-            dropPrices.append(dropPrice)
-        else:
-            dropPrices.append(dropPrices[-1])
-    except IndexError:
-        dropPrices.append(dropPrice)
-    
 
     data.append((datetime.now(), float(lowestAskRound)))
 
-    tsd = purchase.timeSinceDropped(dropLimit, data)
-    print("Time since last dropped: "+str(tsd[0]))
-    print("Value changed: "+str(tsd[1]))
-    rc = purchase.riseCertainty(dropLimit, lowestAsks)
-    print("purchase certainty: "+str(rc[0]))
+    total = 0
+    val = 0
+
+    for i in range(mpa_points):
+        try:
+            total += lowestAsks[-(i+1)]
+        except IndexError:
+            val = total/(i)
+            break
+
+    if val == 0:
+        val = total/mpa_points
+
+    mpa.append(float(val))
+
+    if len(data) >= max_points:
+        dates.pop(0)
+        data.pop(0)
+        mpa.pop(0)
+        lowestAsks.pop(0)
 
     # clear the subplot
     ax1.clear()
     
     # plot the graph
-    ax1.plot((dates[0], dates[-1]), (lowestAsks[0], lowestAsks[0]), color="#39FF14", label="Start Price", linestyle="dashdot")
     ax1.plot(dates, lowestAsks, color="blue")
-    ax1.plot(dates, dropPrices, color="red", label="Stop Limit", linestyle="dashed")
+    ax1.plot(dates, mpa, color="red", label="Moving Point Average", linestyle="dashed")
+
     # make sure date formatting is correct
     plt.gcf().autofmt_xdate()
 
