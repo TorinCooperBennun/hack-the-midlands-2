@@ -2,13 +2,13 @@ import requests as r
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.dates as md
+from threading import Timer
+
 from datetime import datetime
 from scipy import stats
 from decimal import Decimal
 
-import purchase
-import logic
-
+draw_graphs = False
 
 def api_query(command):
     """
@@ -24,16 +24,17 @@ def api_query(command):
 
 dates = []
 lowestAsks = []
-plt.xticks(rotation=25)
 
-fig = plt.figure()
-ax1 = fig.add_subplot(1,1,1)
-lastPrice = None
+if draw_graphs:
+    plt.xticks(rotation=25)
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+    lastPrice = None
 
 data = []
 mpa = []
 max_points = 80
-mpa_points = 10
+mpa_points = 6
 
 def update(i):
     # fetch the current ticker
@@ -46,8 +47,8 @@ def update(i):
     dates.append(datetime.now())
 
     # add the lowest ask for usdt -> btc to the y axis
-    lowestAsk = ticker_json['USDT_BTC']['lowestAsk']
-    lowestAskRound = float(round(Decimal(lowestAsk), 2))
+    lowestAsk = ticker_json['BTC_DOGE']['lowestAsk']
+    lowestAskRound = float(lowestAsk)
     lowestAsks.append(lowestAskRound)
     global lastPrice
 
@@ -74,25 +75,35 @@ def update(i):
         mpa.pop(0)
         lowestAsks.pop(0)
 
-    # clear the subplot
-    ax1.clear()
+    print("Recent value: "+str(lowestAsks[-1]))
+    print("Moving gradient: "+str((mpa[-1]-mpa[0])/mpa_points))
+
+    if draw_graphs:
+        # clear the subplot
+        ax1.clear()
     
-    # plot the graph
-    ax1.plot(dates, lowestAsks, color="blue")
-    ax1.plot(dates, mpa, color="red", label="Moving Point Average", linestyle="dashed")
+        # plot the graph
+        ax1.plot(dates, lowestAsks, color="blue")
+        ax1.plot(dates, mpa, color="red", label="Moving Point Average", linestyle="dashed")
 
-    # make sure date formatting is correct
-    plt.gcf().autofmt_xdate()
+        # make sure date formatting is correct
+        plt.gcf().autofmt_xdate()
 
-    # use linear regression to calculate if price is going up
-    dateseconds = [t.timestamp() for t in dates]
+def run_timer():
+    t = Timer(1, run_timer)
+    t.start()
+    update(0)
 
-    #if len(dates) > 10:
-        #print(stats.linregress(dateseconds[-10:], [float(a) for a in lowestAsks[-10:]]).slope)
-    
-    
-        
+if draw_graphs:
+    ani = animation.FuncAnimation(fig, update, interval=1000)
+else:
+    run_timer()
 
-ani = animation.FuncAnimation(fig, update, interval=1000)
+try:
+    while(1):
+        pass
+except KeyboardInterrupt:
+    pass
 
-plt.show()
+if draw_graphs:
+    plt.show()
