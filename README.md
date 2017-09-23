@@ -1,2 +1,6 @@
-# hack-the-midlands-2
-testing we gon hack somethin lol
+# WeStartedFromtheBOTtomNowWereHere
+Make the money don't let the money make you
+
+```
+pip3 install -r requirements.txt
+```
